@@ -1,0 +1,13 @@
+Revision history for DBIO-PostgreSQL-Async
+
+{{$NEXT}}
+    - Async PostgreSQL storage via EV::Pg (bypasses DBI, uses libpq directly)
+    - DBIO::PostgreSQL::Async::Storage with select/insert/update/delete async
+    - Transaction support via txn_do_async (BEGIN/COMMIT/ROLLBACK chain)
+    - Pipeline mode for batching queries in single round-trip
+    - LISTEN/NOTIFY for real-time event streaming
+    - COPY IN for bulk data loading
+    - Connection pool with transaction pinning
+    - Sync fallback (->all, ->first etc. still work via blocking ->get)
+    - Prepared statement caching
+    - Integration tested against PostgreSQL 18.3
