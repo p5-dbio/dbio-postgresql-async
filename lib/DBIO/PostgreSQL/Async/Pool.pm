@@ -29,8 +29,12 @@ and queuing when all are busy.
 
 sub new {
   my ($class, %args) = @_;
+  croak('conninfo or conninfo_provider required')
+    unless $args{conninfo} || $args{conninfo_provider};
+
   bless {
-    conninfo     => $args{conninfo} || croak('conninfo required'),
+    conninfo     => $args{conninfo},
+    conninfo_provider => $args{conninfo_provider},
     max_size     => $args{size} || 5,
     on_error     => $args{on_error} || sub { warn "Pool error: $_[0]\n" },
     _connections => [],
@@ -134,10 +138,13 @@ sub shutdown {
 
 sub _create_connection {
   my $self = shift;
+  my $conninfo = $self->{conninfo_provider}
+    ? $self->{conninfo_provider}->()
+    : $self->{conninfo};
 
   require EV::Pg;
   my $pg = EV::Pg->new(
-    conninfo   => $self->{conninfo},
+    conninfo   => $self->_conninfo_string($conninfo),
     on_connect => sub {},
     on_error   => $self->{on_error},
   );
@@ -149,6 +156,23 @@ sub _create_connection {
 sub DESTROY {
   my $self = shift;
   $self->shutdown;
+}
+
+sub _conninfo_string {
+  my ($self, $ci) = @_;
+  return $ci unless ref $ci;
+
+  return join(' ', map { "$_=" . _escape_conninfo($ci->{$_}) }
+    grep { defined $ci->{$_} } keys %$ci);
+}
+
+sub _escape_conninfo {
+  my $val = shift;
+  return "''" unless defined $val && length $val;
+  return $val unless $val =~ /[\s'\\]/;
+  $val =~ s/\\/\\\\/g;
+  $val =~ s/'/\\'/g;
+  return "'$val'";
 }
 
 1;

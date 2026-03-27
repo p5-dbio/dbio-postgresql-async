@@ -4,6 +4,8 @@ package DBIO::PostgreSQL::Async;
 use strict;
 use warnings;
 
+use base 'DBIO';
+
 =head1 DESCRIPTION
 
 Async PostgreSQL support for DBIO using L<EV::Pg>, a non-blocking
@@ -68,12 +70,9 @@ L<EV::Pg> uses the L<EV> event loop. This works with:
 =cut
 
 sub connection {
-  my ($class, $schema, $conninfo, $opts) = @_;
-
-  require DBIO::PostgreSQL::Async::Storage;
-  my $storage = DBIO::PostgreSQL::Async::Storage->new($schema);
-  $storage->connect_info([$conninfo, $opts || {}]);
-  return $storage;
+  my ($self, @info) = @_;
+  $self->storage_type('+DBIO::PostgreSQL::Async::Storage');
+  return $self->next::method(@info);
 }
 
 1;

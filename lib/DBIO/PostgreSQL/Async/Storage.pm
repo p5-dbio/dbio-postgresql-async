@@ -7,6 +7,7 @@ use base 'DBIO::Storage::Async';
 
 use Carp 'croak';
 use Future;
+use Scalar::Util 'blessed';
 use DBIO::SQLMaker;
 use namespace::clean;
 
@@ -46,6 +47,7 @@ sub new {
     sql_maker_class => 'DBIO::SQLMaker',
     _prepared_cache => {},
     _listeners      => {},
+    _conninfo_provider => undef,
     debug           => $ENV{DBIO_TRACE} || 0,
     debugobj        => undef,
   }, $class;
@@ -72,15 +74,64 @@ L<EV::Pg> as libpq connection parameters (host, dbname, user, etc.).
 sub connect_info {
   my ($self, $info) = @_;
   if ($info) {
+    $self->disconnect if $self->{pool} || $self->{_listen_pg};
     $self->{connect_info} = $info;
-    my $conninfo = $info->[0] || {};
-    my $opts     = $info->[1] || {};
-    $self->{_conninfo}  = $conninfo;
-    $self->{_pool_size} = delete $conninfo->{pool_size} || 5;
-    $self->{_opts}      = $opts;
+
+    if (ref $info eq 'ARRAY' && @$info == 1 && blessed($info->[0])
+        && $info->[0]->isa('DBIO::AccessBroker')) {
+      $self->set_access_broker($info->[0], 'write');
+      $self->{_conninfo_provider} = sub {
+        my ($conninfo) = $self->_normalize_async_connect_info(
+          $self->_current_async_connect_info($self->access_broker_mode)
+        );
+        return $conninfo;
+      };
+      my ($conninfo, $pool_size, $opts) = $self->_normalize_async_connect_info(
+        $self->_current_async_connect_info($self->access_broker_mode)
+      );
+      $self->{_conninfo}  = $conninfo;
+      $self->{_pool_size} = $pool_size;
+      $self->{_opts}      = $opts;
+    }
+    else {
+      $self->clear_access_broker;
+      $self->{_conninfo_provider} = undef;
+      my ($conninfo, $pool_size, $opts) = $self->_normalize_async_connect_info($info);
+      $self->{_conninfo}  = $conninfo;
+      $self->{_pool_size} = $pool_size;
+      $self->{_opts}      = $opts;
+    }
   }
   return $self->{connect_info};
 }
+
+sub _current_async_connect_info {
+  my ($self, $mode) = @_;
+
+  my $connect_info = $self->current_access_broker_connect_info($mode);
+  return $connect_info if $connect_info;
+
+  return [ $self->{_conninfo}, $self->{_opts} || {} ];
+}
+
+sub _normalize_async_connect_info {
+  my ($self, $info) = @_;
+
+  my $conninfo = $info->[0];
+  $conninfo = ref($conninfo) eq 'HASH' ? { %$conninfo } : $conninfo;
+
+  my $opts = $info->[1];
+  $opts = ref($opts) eq 'HASH' ? { %$opts } : {};
+
+  my $pool_size = 5;
+  if (ref($conninfo) eq 'HASH') {
+    $pool_size = delete $conninfo->{pool_size} || 5;
+  }
+
+  return ($conninfo, $pool_size, $opts);
+}
+
+sub _conninfo_provider { $_[0]->{_conninfo_provider} }
 
 =method pool
 
@@ -93,17 +144,26 @@ sub pool {
   my $self = shift;
   $self->{pool} ||= do {
     require DBIO::PostgreSQL::Async::Pool;
-    DBIO::PostgreSQL::Async::Pool->new(
-      conninfo => $self->_conninfo_string,
+    my %args = (
       size     => $self->{_pool_size},
       on_error => sub { warn "DBIO::PostgreSQL::Async pool error: $_[0]\n" },
     );
+
+    if ($self->{_conninfo_provider}) {
+      $args{conninfo_provider} = $self->{_conninfo_provider};
+    }
+    else {
+      $args{conninfo} = $self->_conninfo_string;
+    }
+
+    DBIO::PostgreSQL::Async::Pool->new(%args);
   };
 }
 
 sub _conninfo_string {
-  my $self = shift;
-  my $ci = $self->{_conninfo};
+  my ($self, $ci) = @_;
+  $ci = $self->_current_async_connect_info($self->access_broker_mode)->[0]
+    if ! defined $ci;
   return $ci unless ref $ci;
   # Convert hashref to libpq conninfo string
   return join(' ', map { "$_=" . _escape_conninfo($ci->{$_}) }
