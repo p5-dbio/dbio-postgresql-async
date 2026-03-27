@@ -8,6 +8,8 @@ Revision history for DBIO-PostgreSQL-Async
     - LISTEN/NOTIFY for real-time event streaming
     - COPY IN for bulk data loading
     - Connection pool with transaction pinning
+    - Accept AccessBroker objects via Schema->connect($broker)
+    - Refresh async conninfo through the broker for newly created pooled connections
     - Sync fallback (->all, ->first etc. still work via blocking ->get)
     - Prepared statement caching
     - Integration tested against PostgreSQL 18.3

@@ -13,6 +13,7 @@ maximum performance (124k queries/sec in pipeline mode).
 - **LISTEN/NOTIFY** — real-time event streaming from PostgreSQL
 - **COPY** — bulk data loading at wire speed
 - **Connection pooling** — with transaction pinning
+- **AccessBroker support** — `Schema->connect($broker)` with broker-refreshed conninfo for new pool connections
 - **Sync fallback** — `->all`, `->first` etc. still work (blocking)
 
 ## Synopsis
@@ -26,6 +27,16 @@ my $schema = MyApp::Schema->connect(
         pool_size => 10,
     },
 );
+
+use DBIO::AccessBroker::Static;
+
+my $broker = DBIO::AccessBroker::Static->new(
+    dsn      => 'dbi:Pg:dbname=myapp;host=localhost',
+    username => 'myapp',
+    password => 'secret',
+);
+
+my $brokered = MyApp::Schema->connect($broker);
 
 # Async
 $schema->resultset('Artist')->all_async->then(sub {
