@@ -22,7 +22,7 @@ speaks libpq's async protocol directly for maximum performance.
 
 ## Dependencies
 
-- EV::Pg >= 0.02 (requires libpq >= 14, some features need >= 17)
+- EV::Pg >= 0.02, < 0.03 (0.02.x is the verified line on libpq 15)
 - Future >= 0.49
 - DBIO core
 

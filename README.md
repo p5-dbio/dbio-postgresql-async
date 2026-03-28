@@ -81,7 +81,7 @@ DBIOTEST_PG_DSN='dbname=testdb' prove -l t/10-integration.t
 ## Requirements
 
 - libpq >= 14 (PostgreSQL client library)
-- EV::Pg >= 0.02
+- EV::Pg >= 0.02, < 0.03
 - Future >= 0.49
 - DBIO
 

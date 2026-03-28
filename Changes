@@ -10,6 +10,7 @@ Revision history for DBIO-PostgreSQL-Async
     - Connection pool with transaction pinning
     - Accept AccessBroker objects via Schema->connect($broker)
     - Refresh async conninfo through the broker for newly created pooled connections
+    - Cap EV::Pg prereq to the verified 0.02.x line for libpq 15 compatibility
     - Sync fallback (->all, ->first etc. still work via blocking ->get)
     - Prepared statement caching
     - Integration tested against PostgreSQL 18.3

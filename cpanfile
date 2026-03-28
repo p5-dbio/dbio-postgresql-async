@@ -2,7 +2,7 @@ requires 'perl', '5.020';
 
 requires 'DBIO';
 requires 'DBIO::PostgreSQL';
-requires 'EV::Pg', '0.02';
+requires 'EV::Pg', '>= 0.02, < 0.03';
 requires 'Future', '0.49';
 requires 'namespace::clean';
 
