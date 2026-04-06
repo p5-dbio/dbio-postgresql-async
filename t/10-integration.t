@@ -4,17 +4,17 @@ use Test::More;
 use Test::Exception;
 
 BEGIN {
-  plan skip_all => 'Set DBIOTEST_PG_DSN to run integration tests'
-    unless $ENV{DBIOTEST_PG_DSN};
+  plan skip_all => 'Set DBIO_TEST_PG_DSN to run integration tests'
+    unless $ENV{DBIO_TEST_PG_DSN};
 }
 
 use EV;
 use EV::Pg;
 
 # Parse DSN into conninfo
-my $dsn = $ENV{DBIOTEST_PG_DSN};
-my $user = $ENV{DBIOTEST_PG_USER} || '';
-my $pass = $ENV{DBIOTEST_PG_PASS} || '';
+my $dsn = $ENV{DBIO_TEST_PG_DSN};
+my $user = $ENV{DBIO_TEST_PG_USER} || '';
+my $pass = $ENV{DBIO_TEST_PG_PASS} || '';
 
 my $conninfo;
 if ($dsn =~ /^dbi:Pg:(.+)/i) {
@@ -42,7 +42,7 @@ $pg = EV::Pg->new(
 EV::run until $connected;
 
 if ($connected < 0) {
-  plan skip_all => "Could not connect to PostgreSQL: check DBIOTEST_PG_DSN";
+  plan skip_all => "Could not connect to PostgreSQL: check DBIO_TEST_PG_DSN";
 }
 
 ok $connected > 0, 'connected to PostgreSQL';

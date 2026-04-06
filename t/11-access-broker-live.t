@@ -4,8 +4,8 @@ use Test::More;
 use Test::Exception;
 
 BEGIN {
-  plan skip_all => 'Set DBIOTEST_PG_DSN to run integration tests'
-    unless $ENV{DBIOTEST_PG_DSN};
+  plan skip_all => 'Set DBIO_TEST_PG_DSN to run integration tests'
+    unless $ENV{DBIO_TEST_PG_DSN};
   eval { require EV::Pg } or plan skip_all => 'EV::Pg not installed';
 }
 
@@ -16,9 +16,9 @@ use DBIO::PostgreSQL::Async::Storage;
 
 # --- Parse DSN into libpq conninfo hashref ---
 
-my $dsn  = $ENV{DBIOTEST_PG_DSN};
-my $user = $ENV{DBIOTEST_PG_USER} || '';
-my $pass = $ENV{DBIOTEST_PG_PASS} || '';
+my $dsn  = $ENV{DBIO_TEST_PG_DSN};
+my $user = $ENV{DBIO_TEST_PG_USER} || '';
+my $pass = $ENV{DBIO_TEST_PG_PASS} || '';
 
 my %base_conninfo;
 if ($dsn =~ /^dbi:Pg:(.+)/i) {

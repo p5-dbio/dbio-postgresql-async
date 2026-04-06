@@ -31,8 +31,8 @@ speaks libpq's async protocol directly for maximum performance.
 - `t/00-load.t` — skips if EV::Pg not installed
 - `t/01-storage-api.t` — skips if EV::Pg not installed
 - `t/02-access-broker.t` — AccessBroker unit tests (no real DB)
-- `t/10-integration.t` — EV::Pg live tests; requires `DBIOTEST_PG_DSN` + EV::Pg
-- `t/11-access-broker-live.t` — AccessBroker live tests with real PG; requires `DBIOTEST_PG_DSN` + EV::Pg
+- `t/10-integration.t` — EV::Pg live tests; requires `DBIO_TEST_PG_DSN` + EV::Pg
+- `t/11-access-broker-live.t` — AccessBroker live tests with real PG; requires `DBIO_TEST_PG_DSN` + EV::Pg
 
 ### Kubernetes setup for integration tests
 
@@ -43,9 +43,9 @@ kubectl --kubeconfig ~/.kube/rexdemo.yaml wait --for=condition=Ready pod/dbio-as
 kubectl --kubeconfig ~/.kube/rexdemo.yaml port-forward svc/dbio-async-pg-svc 5432:5432 &
 
 # Run all integration tests
-DBIOTEST_PG_DSN='dbi:Pg:dbname=dbio_async;host=127.0.0.1;port=5432' \
-DBIOTEST_PG_USER=dbio \
-DBIOTEST_PG_PASS=dbio \
+DBIO_TEST_PG_DSN='dbi:Pg:dbname=dbio_async;host=127.0.0.1;port=5432' \
+DBIO_TEST_PG_USER=dbio \
+DBIO_TEST_PG_PASS=dbio \
   prove -l t/10-integration.t t/11-access-broker-live.t
 
 # Teardown

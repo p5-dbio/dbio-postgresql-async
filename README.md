@@ -75,7 +75,7 @@ EV::Pg uses the EV event loop. This works with:
 prove -l t/00-load.t t/01-storage-api.t
 
 # Integration tests (need PostgreSQL + EV::Pg)
-DBIOTEST_PG_DSN='dbname=testdb' prove -l t/10-integration.t
+DBIO_TEST_PG_DSN='dbname=testdb' prove -l t/10-integration.t
 ```
 
 ## Requirements
