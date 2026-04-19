@@ -473,13 +473,23 @@ sub listen {
 
   $self->{_listeners}{$channel} = $cb;
 
-  # Use a dedicated connection for LISTEN (not from the pool)
+  # Use a dedicated connection for LISTEN (not from the pool).
+  # EV::Pg->new returns before the socket is actually connected; query()
+  # dispatched on a not-yet-connected handle throws "not connected".
+  # We buffer LISTEN/UNLISTEN until on_connect fires and then flush.
   $self->{_listen_pg} ||= do {
     require EV::Pg;
+    $self->{_listen_pending} = [];
+    $self->{_listen_connected} = 0;
     my $pg = EV::Pg->new(
       conninfo   => $self->_conninfo_string,
       keep_alive => 1,
-      on_connect => sub {},
+      on_connect => sub {
+        $self->{_listen_connected} = 1;
+        my $q = delete $self->{_listen_pending} || [];
+        $self->{_listen_pending} = [];
+        $self->{_listen_pg}->query($_, sub {}) for @$q;
+      },
       on_error   => sub { warn "LISTEN connection error: $_[0]\n" },
       on_notify  => sub {
         my ($ch, $payload, $pid) = @_;
@@ -492,7 +502,12 @@ sub listen {
   };
 
   my $quoted = $self->sql_maker->_quote($channel);
-  $self->{_listen_pg}->query("LISTEN $quoted", sub {});
+  my $sql = "LISTEN $quoted";
+  if ($self->{_listen_connected}) {
+    $self->{_listen_pg}->query($sql, sub {});
+  } else {
+    push @{ $self->{_listen_pending} }, $sql;
+  }
 }
 
 =method unlisten
@@ -508,7 +523,12 @@ sub unlisten {
   delete $self->{_listeners}{$channel};
   if ($self->{_listen_pg}) {
     my $quoted = $self->sql_maker->_quote($channel);
-    $self->{_listen_pg}->query("UNLISTEN $quoted", sub {});
+    my $sql = "UNLISTEN $quoted";
+    if ($self->{_listen_connected}) {
+      $self->{_listen_pg}->query($sql, sub {});
+    } else {
+      push @{ $self->{_listen_pending} }, $sql;
+    }
   }
 }
 
