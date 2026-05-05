@@ -6,6 +6,7 @@ use warnings;
 use base 'DBIO::Storage::Pool';
 
 use Carp 'croak';
+use Future;
 
 =head1 DESCRIPTION
 
@@ -52,23 +53,20 @@ max size, queues the request.
 =cut
 
 sub acquire {
-  my $self = shift;
+  my ($self) = @_;
 
-  # Return idle connection if available
   if (@{ $self->{_idle} }) {
-    return pop @{ $self->{_idle} };
+    return Future->done(pop @{ $self->{_idle} });
   }
 
-  # Create new connection if under limit
   if (@{ $self->{_connections} } < $self->{max_size}) {
     my $pg = $self->_create_connection;
-    return $pg;
+    return Future->done($pg);
   }
 
-  # All connections busy — this should not happen in well-designed
-  # async code. For now, croak. A proper implementation would queue
-  # a Future and resolve it when a connection is released.
-  croak "Connection pool exhausted (max: $self->{max_size})";
+  my $f = Future->new;
+  push @{ $self->{_waiters} }, $f;
+  return $f;
 }
 
 =method acquire_txn
@@ -94,6 +92,13 @@ Return a connection to the idle pool.
 
 sub release {
   my ($self, $pg) = @_;
+
+  if (@{ $self->{_waiters} }) {
+    my $waiter = shift @{ $self->{_waiters} };
+    $waiter->done($pg);
+    return;
+  }
+
   push @{ $self->{_idle} }, $pg;
 }
 
