@@ -313,6 +313,21 @@ sub _query_async {
   return $f;
 }
 
+sub _query_async_on {
+  my ($self, $pg, $sql, $bind) = @_;
+  $bind ||= [];
+
+  $self->_debug_query($sql, $bind) if $self->{debug};
+
+  my $f = Future->new;
+  $pg->query_params($sql, $bind, sub {
+    my ($rows, $err) = @_;
+    if ($err) { $f->fail($err) } else { $f->done(ref $rows eq 'ARRAY' ? @$rows : $rows) }
+    $self->pool->release($pg);
+  });
+  return $f;
+}
+
 sub _debug_query {
   my ($self, $sql, $bind) = @_;
   my $bind_str = join(', ', map { defined $_ ? "'$_'" : 'NULL' } @$bind);

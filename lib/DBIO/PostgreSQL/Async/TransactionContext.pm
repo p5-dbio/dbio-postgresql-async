@@ -33,7 +33,7 @@ sub _query_async {
   # We add a variant on storage: _query_async_on($pg, $sql, $bind)
   # For now, forward to storage._query_async — the storage's txn_do_async
   # will be refactored to use _query_async_on(pg, ...) via txn_pg.
-  return $self->{storage}->_query_async($sql, $bind, $self->{pg});
+  return $self->{storage}->_query_async_on($self->{pg}, $sql, $bind);
 }
 
 # Forward everything else to the wrapped storage via AUTOLOAD
