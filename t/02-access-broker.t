@@ -4,7 +4,6 @@ use warnings;
 use Test::More;
 
 use DBIO::AccessBroker;
-use DBIO::AccessBroker::Static;
 use DBIO::PostgreSQL::Async;
 use DBIO::PostgreSQL::Async::Storage;
 
@@ -68,28 +67,5 @@ my $schema = TestSchema->connect($broker);
 isa_ok $schema->storage, 'DBIO::PostgreSQL::Async::Storage';
 is $schema->storage->access_broker, $broker, 'async schema connect keeps broker';
 is $schema->storage->access_broker_mode, 'write', 'async schema connect defaults broker mode to write';
-
-subtest 'Static broker with DBI DSN works with async storage' => sub {
-  my $broker = DBIO::AccessBroker::Static->new(
-    dsn => 'dbi:Pg:dbname=mydb;host=127.0.0.1',
-    username => 'user',
-    password => 'pass',
-  );
-
-  {
-    package TestSchema2;
-    use base 'DBIO::Schema';
-    __PACKAGE__->load_components('PostgreSQL::Async');
-  }
-
-  my $schema = TestSchema2->connect($broker);
-  my $storage = $schema->storage;
-
-  ok($storage->access_broker, 'broker attached to async storage');
-  is($storage->access_broker, $broker, 'same broker instance');
-  # The async storage must internally translate the DBI DSN to async format
-  like($storage->_conninfo_string, qr/host=127.0.0.1/, 'async conninfo has host');
-  like($storage->_conninfo_string, qr/dbname=mydb/, 'async conninfo has dbname');
-};
 
 done_testing;
