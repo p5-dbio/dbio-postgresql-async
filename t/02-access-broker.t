@@ -4,6 +4,7 @@ use warnings;
 use Test::More;
 
 use DBIO::AccessBroker;
+use DBIO::AccessBroker::Static;
 use DBIO::PostgreSQL::Async;
 use DBIO::PostgreSQL::Async::Storage;
 
@@ -67,5 +68,29 @@ my $schema = TestSchema->connect($broker);
 isa_ok $schema->storage, 'DBIO::PostgreSQL::Async::Storage';
 is $schema->storage->access_broker, $broker, 'async schema connect keeps broker';
 is $schema->storage->access_broker_mode, 'write', 'async schema connect defaults broker mode to write';
+
+subtest 'Static broker hashref converts to libpq conninfo string correctly' => sub {
+  plan tests => 6;
+
+  # Use dev Storage directly (loaded at line 9 with lib/ in @INC taking precedence)
+  my $broker = DBIO::AccessBroker::Static->new(
+    host     => '127.0.0.1',
+    port     => 5432,
+    dbname   => 'mydb',
+    username => 'testuser',
+    password => 'testpass',
+  );
+
+  my $storage = DBIO::PostgreSQL::Async::Storage->new(undef);
+  $storage->connect_info([$broker]);
+
+  ok($storage->access_broker, 'broker attached');
+  my $conninfo = $storage->_conninfo_string;
+  like($conninfo, qr/host=127\.0\.0\.1/, 'host present in conninfo');
+  like($conninfo, qr/port=5432/, 'port present in conninfo');
+  like($conninfo, qr/dbname=mydb/, 'dbname present in conninfo');
+  like($conninfo, qr/user=testuser/, 'user present in conninfo');
+  like($conninfo, qr/password=testpass/, 'password present in conninfo');
+};
 
 done_testing;

@@ -109,6 +109,7 @@ sub _current_async_connect_info {
   my ($self, $mode) = @_;
 
   my $connect_info = $self->current_access_broker_connect_info($mode);
+  return [$connect_info, {}] if $connect_info && ref $connect_info eq 'HASH';
   return $connect_info if $connect_info;
 
   return [ $self->{_conninfo}, $self->{_opts} || {} ];
