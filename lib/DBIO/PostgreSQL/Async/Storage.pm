@@ -118,10 +118,46 @@ sub _normalize_async_connect_info {
   my ($self, $info) = @_;
 
   my $conninfo = $info->[0];
-  $conninfo = ref($conninfo) eq 'HASH' ? { %$conninfo } : $conninfo;
+  my $opts     = $info->[1] // {};
 
-  my $opts = $info->[1];
-  $opts = ref($opts) eq 'HASH' ? { %$opts } : {};
+  # If conninfo is an array (DBI format [dsn, user, pass, attrs]),
+  # extract user/pass into the hash and pick pool_size from attrs
+  if (ref $conninfo eq 'ARRAY' && @$conninfo >= 3) {
+    my ($dsn, $user, $pass, $attrs) = @$conninfo;
+    my %hash = (user => $user, password => $pass);
+    $hash{pool_size} = delete $attrs->{pool_size}
+      if ref $attrs eq 'HASH' && exists $attrs->{pool_size};
+
+    # Parse the DBI DSN for async-native params
+    my ($params) = $dsn =~ /^dbi:Pg:(.+)$/i;
+    if (defined $params) {
+      my %dsn_params = map {
+        my ($k, $v) = split /=/, $_, 2;
+        $k => $v;
+      } grep { length $_ } split /;/, $params;
+      %hash = (%hash, %dsn_params);
+    }
+
+    $conninfo = \%hash;
+  }
+  elsif (ref $conninfo eq 'HASH') {
+    $conninfo = { %$conninfo };
+  }
+  else {
+    # Bare string DSN — try to parse as DBI-Pg format
+    if (defined $conninfo && !ref($conninfo)) {
+      my ($params) = $conninfo =~ /^dbi:Pg:(.+)$/i;
+      if (defined $params) {
+        my %hash = map {
+          my ($k, $v) = split /=/, $_, 2;
+          $k => $v;
+        } grep { length $_ } split /;/, $params;
+        $conninfo = \%hash;
+      }
+    }
+  }
+
+  $opts = ref $opts eq 'HASH' ? { %$opts } : {};
 
   my $pool_size = 5;
   if (ref($conninfo) eq 'HASH') {
