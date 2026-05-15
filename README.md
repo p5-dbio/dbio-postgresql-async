@@ -59,6 +59,20 @@ $schema->storage->listen('events', sub {
 });
 ```
 
+## Async
+
+The storage class returns L<Future> objects for all query operations,
+enabling fully non-blocking database access.
+
+## Pipeline
+
+Pipeline mode batches multiple queries into a single network round-trip.
+
+## LISTEN/NOTIFY
+
+PostgreSQL's publish/subscribe system for real-time notifications.
+Use `->listen($channel, $callback)` to subscribe and `->notify($channel, $payload)` to emit.
+
 ## Event Loop Compatibility
 
 EV::Pg uses the EV event loop. This works with:
