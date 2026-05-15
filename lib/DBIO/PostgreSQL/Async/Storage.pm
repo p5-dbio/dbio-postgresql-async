@@ -329,6 +329,23 @@ sub _query_async_on {
   return $f;
 }
 
+# Like _query_async_on but does NOT release the connection.
+# Used for queries within a pinned transaction.
+sub _query_async_pinned {
+  my ($self, $pg, $sql, $bind) = @_;
+  $bind ||= [];
+
+  $self->_debug_query($sql, $bind) if $self->{debug};
+
+  my $f = Future->new;
+  $pg->query_params($sql, $bind, sub {
+    my ($rows, $err) = @_;
+    if ($err) { $f->fail($err) } else { $f->done(ref $rows eq 'ARRAY' ? @$rows : $rows) }
+    # Do NOT release — connection is pinned for the duration of the txn
+  });
+  return $f;
+}
+
 sub _debug_query {
   my ($self, $sql, $bind) = @_;
   my $bind_str = join(', ', map { defined $_ ? "'$_'" : 'NULL' } @$bind);
@@ -354,11 +371,12 @@ sub txn_do_async {
   my ($self, $coderef, @args) = @_;
 
   my $pg = $self->pool->acquire_txn;
-  my $txn_storage = bless {
-    %$self,
-    _txn_pg  => $pg,
-    _in_txn  => 1,
-  }, ref($self);
+
+  require DBIO::PostgreSQL::Async::TransactionContext;
+  my $txn_ctx = DBIO::PostgreSQL::Async::TransactionContext->new(
+    storage => $self,
+    pg      => $pg,
+  );
 
   my $f = Future->new;
 
@@ -370,7 +388,7 @@ sub txn_do_async {
       return;
     }
 
-    my $inner = eval { $coderef->($txn_storage, @args) };
+    my $inner = eval { $coderef->($txn_ctx, @args) };
     if ($@) {
       my $error = $@;
       $pg->query('ROLLBACK', sub {
