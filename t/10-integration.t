@@ -21,6 +21,8 @@ if ($dsn =~ /^dbi:Pg:(.+)/i) {
   my $params = $1;
   $conninfo = $params;
   $conninfo =~ s/;/ /g;
+  # Normalize database → dbname for libpq
+  $conninfo =~ s/\bdatabase=/dbname=/g;
   $conninfo .= " user=$user" if $user;
   $conninfo .= " password=$pass" if $pass;
 } else {

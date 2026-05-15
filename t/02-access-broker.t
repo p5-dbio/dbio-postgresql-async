@@ -4,7 +4,7 @@ use warnings;
 use Test::More;
 
 use DBIO::AccessBroker;
-use DBIO::AccessBroker::Static;
+use DBIO::AccessBroker::Credentials;
 use DBIO::PostgreSQL::Async;
 use DBIO::PostgreSQL::Async::Storage;
 
@@ -73,11 +73,11 @@ subtest 'Static broker hashref converts to libpq conninfo string correctly' => s
   plan tests => 6;
 
   # Use dev Storage directly (loaded at line 9 with lib/ in @INC taking precedence)
-  my $broker = DBIO::AccessBroker::Static->new(
+  my $broker = DBIO::AccessBroker::Credentials->new(
     host     => '127.0.0.1',
     port     => 5432,
     dbname   => 'mydb',
-    username => 'testuser',
+    user     => 'testuser',
     password => 'testpass',
   );
 

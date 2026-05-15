@@ -21,6 +21,11 @@ use DBIO::PostgreSQL::Async::TransactionContext;
     push @{ $self->{_queries} //= [] }, $sql;
     return Future->done([]);
   }
+  sub _query_async_pinned {
+    my ($self, $pg, $sql, $bind) = @_;
+    push @{ $self->{_queries} //= [] }, $sql;
+    return Future->done([]);
+  }
 }
 {
   package MockPool27;

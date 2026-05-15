@@ -61,13 +61,17 @@ sub _query_async {
 
 # Explicitly delegate the full public API to storage for backward compatibility.
 # These are the methods a txn_do_async callback is expected to call.
-for my $method (qw(
-  select_async select_single_async insert_async update_async delete_async
-  select select_single insert update delete
-  sql_maker debug
-)) {
-  eval "sub $method { my \$self = shift; \$self->{storage}->$method(\@_) }"
-    or die "TransactionContext delegation failed for $method: $@";
-}
+sub select_async       { my $self = shift; $self->{storage}->select_async(@_)       }
+sub select_single_async { my $self = shift; $self->{storage}->select_single_async(@_) }
+sub insert_async       { my $self = shift; $self->{storage}->insert_async(@_)       }
+sub update_async       { my $self = shift; $self->{storage}->update_async(@_)       }
+sub delete_async       { my $self = shift; $self->{storage}->delete_async(@_)       }
+sub select             { my $self = shift; $self->{storage}->select(@_)             }
+sub select_single      { my $self = shift; $self->{storage}->select_single(@_)      }
+sub insert             { my $self = shift; $self->{storage}->insert(@_)             }
+sub update             { my $self = shift; $self->{storage}->update(@_)             }
+sub delete             { my $self = shift; $self->{storage}->delete(@_)             }
+sub sql_maker          { my $self = shift; $self->{storage}->sql_maker(@_)          }
+sub debug              { my $self = shift; $self->{storage}->debug(@_)              }
 
 1;

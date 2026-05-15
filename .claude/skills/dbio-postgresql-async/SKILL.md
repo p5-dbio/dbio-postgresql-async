@@ -54,6 +54,15 @@ $schema->connection({
     pipeline  => 1,
   },
 });
+
+# With AccessBroker — see dbio-core skill for full AccessBroker docs
+use DBIO::AccessBroker::Static;
+my $broker = DBIO::AccessBroker::Static->new(
+  dsn  => 'host=localhost dbname=myapp',
+  user => 'dbio',
+  pass => 'secret',
+);
+my $brokered = MyApp::Schema->connect($broker);
 ```
 
 ## Async API
